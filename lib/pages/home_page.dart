@@ -1,6 +1,8 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, unused_local_variable
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, unused_local_variable, sort_child_properties_last
 
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:to_do_app/data/database.dart';
 import 'package:to_do_app/util/dialogBox.dart';
 import 'package:to_do_app/util/todo_tile.dart';
 
@@ -12,20 +14,24 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final myBox = Hive.box('mybox');
+
   final control = TextEditingController();
-  List toDoList = [];
+  toDoDatabase db = toDoDatabase();
   void checkBoxChanged(bool? value, int index) {
     setState(() {
-      toDoList[index][1] = !toDoList[index][1];
+      db.toDoList[index][1] = !db.toDoList[index][1];
     });
+    db.updateDatabase();
   }
 
   void saveNewTask() {
     setState(() {
       String newTask = control.text;
-      toDoList.add([newTask, false]);
+      db.toDoList.add([newTask, false]);
       control.clear();
     });
+    db.updateDatabase();
     Navigator.of(context).pop();
   }
 
@@ -40,32 +46,51 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+    db.updateDatabase();
   }
 
   void deleteTask(int i) {
     setState(() {
-      toDoList.removeAt(i);
+      db.toDoList.removeAt(i);
     });
+    db.updateDatabase();
   }
 
   @override
+  void initState() {
+    if (myBox.get("TODOLIST") == null) {
+      db.createInitialData();
+    } else {
+      db.loadData();
+    }
+    super.initState();
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.yellow[200],
+        backgroundColor: const Color.fromARGB(255, 65, 64, 64),
         appBar: AppBar(
-          backgroundColor: Colors.yellow,
-          title: Center(child: Text("TO DO")),
+          backgroundColor: const Color.fromARGB(255, 37, 37, 37),
+          title: Center(
+              child: Text(
+            "TO DO",
+            style: TextStyle(color: Colors.white),
+          )),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: createNewTask,
-          child: Icon(Icons.add),
+          child: Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
+          backgroundColor: const Color.fromARGB(255, 22, 22, 22),
         ),
         body: ListView.builder(
-          itemCount: toDoList.length,
+          itemCount: db.toDoList.length,
           itemBuilder: (context, index) {
             return TodoTile(
-              taskName: toDoList[index][0],
-              taskComplete: toDoList[index][1],
+              taskName: db.toDoList[index][0],
+              taskComplete: db.toDoList[index][1],
               onChanged: (value) => checkBoxChanged(value, index),
               deleteFunction: (context) => deleteTask(index),
             );
